@@ -1,73 +1,119 @@
-# React + TypeScript + Vite
+# React + TypeScript + Vite — Lazy Load on Intersection (HOC)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository demonstrates a small, production-minded pattern for lazily
+loading React components when they scroll into view using an easy-to-reuse
+higher-order component: `withLazyLoadOnIntersection`.
 
-Currently, two official plugins are available:
+## Why this HOC?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Large UIs often contain widgets or visual sections that are not visible on
+first paint. Loading those components only when they are near the viewport
+reduces initial bundle work, improves first paint time, and reduces memory
+pressure. This HOC pairs `React.lazy` + `Suspense` with an intersection
+observer to make lazy-loading ergonomic and typesafe.
 
-## React Compiler
+Key features
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+- TypeScript-friendly API with generics (keeps props typings intact).
+- Built on `react-intersection-observer` for predictable behaviour and test helpers.
+- Suspense fallback support for graceful UI while the chunk loads.
+- `triggerOnce` default to avoid re-mount thrash and extra observation cost.
 
-## Expanding the ESLint configuration
+## Quick example (TypeScript)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```tsx
+import React, { lazy } from "react";
+import { withLazyLoadOnIntersection } from "./with-lazy-load-on-intersection";
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+const TimeDisplay = lazy(
+  () => import("./components/time-display/time-display"),
+);
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+const LazyTimeDisplay = withLazyLoadOnIntersection({
+  Component: TimeDisplay,
+  fallback: <div>Loading time display...</div>,
+  options: { threshold: 0.5, rootMargin: "100px", triggerOnce: true },
+});
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+export default function App() {
+  return (
+    <div>
+      <h3>Lazy loaded on intersection</h3>
+      <LazyTimeDisplay additionalText="This was lazy loaded when visible" />
+    </div>
+  );
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## API / Types
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The HOC signature (TypeScript) is:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```ts
+export const withLazyLoadOnIntersection = <P extends object>({
+  Component,
+  fallback?,                // ReactNode shown while lazy chunk loads
+  options?,                 // IntersectionObserver props (Omit children)
+  wrapperProps?,            // Props forwarded to the wrapper <div>
+}: WithLazyLoadOnIntersectionProps<P>) => (props: P) => JSX.Element
 ```
+
+Props details:
+
+- `Component: React.ComponentType<P>` — a lazy or normal React component.
+- `fallback?: React.ReactNode` — the `Suspense` fallback while code loads.
+- `options?: Omit<IntersectionObserverProps, "children">` — all standard
+  intersection observer options from `react-intersection-observer` (e.g.
+  `threshold`, `rootMargin`, `triggerOnce`). Defaults chosen for common
+  lazy-loading patterns.
+- `wrapperProps?: React.ComponentProps<"div">` — forwarded to outer wrapper,
+  useful for `className`, `style`, or ARIA attributes.
+
+## Implementation notes (what the HOC does)
+
+- Renders an outer `<div ref={inViewRef} style={{minHeight: "1px"}} ...>` that
+  acts as the observation target.
+- Uses `useOnInView` from `react-intersection-observer` to set a local flag
+  `isIntersecting`.
+- When `isIntersecting` becomes true the HOC renders the wrapped `Component`
+  inside `React.Suspense` with the provided `fallback`.
+- The HOC intentionally sets `triggerOnce` default to true to avoid repeated
+  observations and remounts once the component has loaded.
+
+## Accessibility & SSR
+
+- IntersectionObserver is a client-side API. During SSR the HOC will render
+  the wrapper and the fallback behaviour depends on your hydration strategy.
+  If content must be visible on initial load for users or crawlers, avoid
+  wrapping that content with this HOC (or render a server-side placeholder).
+- Ensure `fallback` is accessible (e.g. aria-busy, role, visible text) and
+  that `wrapperProps` can be used to set ARIA attributes if needed.
+
+## Performance tips
+
+- Use appropriate `rootMargin` so components start loading slightly before they
+  enter the visible viewport (e.g. `200px`).
+- Keep `triggerOnce: true` for static content; set false only if you need
+  repeated enter/exit logic.
+
+## Adopting into your codebase
+
+1. Copy `src/with-lazy-load-on-intersection.tsx` to your utilities/components folder.
+2. Add `react-intersection-observer` to your project: `pnpm add react-intersection-observer`.
+3. Wrap lazy components with `withLazyLoadOnIntersection({ Component: MyLazy })`.
+4. Tune `options` per component (optional): threshold/rootMargin/triggerOnce.
+
+## Source / Files of interest
+
+- HOC implementation: `src/with-lazy-load-on-intersection.tsx`
+- Example component: `src/components/time-display/time-display.tsx`
+- Example usage: `src/App.tsx`
+
+## Setup
+
+- pnpm i
+- pnpm dev
+
+## License & attribution
+
+This project is a demo/boilerplate. Feel free to reuse the HOC as-is or adapt for your project.
