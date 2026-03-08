@@ -117,3 +117,11 @@ Props details:
 ## License & attribution
 
 This project is a demo/boilerplate. Feel free to reuse the HOC as-is or adapt for your project.
+
+## Demo video
+
+
+
+
+https://github.com/user-attachments/assets/3e1effa4-970e-440a-84be-cd6584452e4c
+
