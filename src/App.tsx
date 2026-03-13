@@ -7,11 +7,7 @@ const TimeDisplay = lazy(
   () => import("./components/time-display/time-display"),
 );
 
-const LazyTimeDisplay = withLazyLoadOnIntersection({
-  Component: TimeDisplay,
-  fallback: <div>Loading time display...</div>,
-  options: { threshold: 0.5, rootMargin: "100px", triggerOnce: true },
-});
+const LazyTimeDisplay = withLazyLoadOnIntersection(TimeDisplay);
 
 function App() {
   const [count, setCount] = useState(0);

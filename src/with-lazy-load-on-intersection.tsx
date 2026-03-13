@@ -4,11 +4,10 @@ import {
   type IntersectionObserverProps,
 } from "react-intersection-observer";
 
-interface WithLazyLoadOnIntersectionProps<P extends object> {
-  Component: React.ComponentType<P>;
+interface WithLazyLoadOnIntersectionConfig {
   fallback?: React.ReactNode;
   options?: Omit<IntersectionObserverProps, "children">;
-  wrapperProps?: React.ComponentProps<"div">;
+  wrapperProps?: Omit<React.ComponentProps<"div">, "ref">;
 }
 
 /**
@@ -19,32 +18,38 @@ interface WithLazyLoadOnIntersectionProps<P extends object> {
  * *
  *
  * @template P - The props type of the component being wrapped.
- * * @param {WithLazyLoadOnIntersectionProps<P>} config - Configuration object for the HOC.
+ * * @param {WithLazyLoadOnIntersectionConfig} config - Configuration object for the HOC.
  * @param {React.ComponentType<P>} config.Component - The component to be lazy-loaded (typically a `React.lazy` export).
  * @param {React.ReactNode} [config.fallback=<div>Loading...</div>] - The UI to show while the component is being fetched.
  * @param {IntersectionObserverProps} [config.options] - Intersection Observer settings (e.g., threshold, rootMargin).
- * @param {React.ComponentProps<"div">} [config.wrapperProps] - Props to pass to the wrapping `div` element.
+ * @param {Omit<React.ComponentProps<"div">, "ref">} [config.wrapperProps] - Props to pass to the wrapping `div` element.
  * * @returns {React.FC<P>} A functional component that accepts the original props of the wrapped component.
  * * @example
  * // 1. Define the lazy component
  * const HeavyChart = React.lazy(() => import("./HeavyChart"));
  * * // 2. Wrap it
- * const LazyChart = withLazyLoadOnIntersection({
- * Component: HeavyChart
- * });
+ * const LazyChart = withLazyLoadOnIntersection(HeavyChart);
  * * // 3. Use it like a normal component
  * <LazyChart chartData={data} />
  */
-export const withLazyLoadOnIntersection = <P extends object>({
-  Component,
-  fallback = <div>Loading...</div>,
-  options = {
+export const withLazyLoadOnIntersection = <P extends object>(
+  Component: React.ComponentType<P>,
+  {
+    fallback = <div>Loading...</div>,
+    options,
+    wrapperProps = {},
+  }: WithLazyLoadOnIntersectionConfig = {},
+) => {
+  const defaultOptions: Omit<IntersectionObserverProps, "children"> = {
     threshold: 0.1,
     rootMargin: "200px",
     triggerOnce: true,
-  },
-  wrapperProps = {},
-}: WithLazyLoadOnIntersectionProps<P>) => {
+  };
+  const mergedOptions: Omit<IntersectionObserverProps, "children"> = {
+    ...defaultOptions,
+    ...(options ?? {}),
+  };
+
   return (props: P) => {
     const [isIntersecting, setIsIntersecting] = useState(false);
 
@@ -52,10 +57,10 @@ export const withLazyLoadOnIntersection = <P extends object>({
       if (inView) {
         setIsIntersecting(true);
       }
-    }, options);
+    }, mergedOptions);
 
     return (
-      <div ref={inViewRef} style={{ minHeight: "1px" }} {...wrapperProps}>
+      <div style={{ minHeight: "1px" }} {...wrapperProps} ref={inViewRef}>
         <Suspense fallback={fallback}>
           {isIntersecting ? <Component {...props} /> : null}
         </Suspense>
