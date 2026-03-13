@@ -1,4 +1,4 @@
-# React + TypeScript + Vite — Lazy Load on Intersection (HOC)
+# React + TypeScript + Vite - Lazy Load on Intersection (HOC)
 
 This repository demonstrates a small, production-minded pattern for lazily
 loading React components when they scroll into view using an easy-to-reuse
