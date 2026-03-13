@@ -29,8 +29,7 @@ const TimeDisplay = lazy(
   () => import("./components/time-display/time-display"),
 );
 
-const LazyTimeDisplay = withLazyLoadOnIntersection({
-  Component: TimeDisplay,
+const LazyTimeDisplay = withLazyLoadOnIntersection(TimeDisplay, {
   fallback: <div>Loading time display...</div>,
   options: { threshold: 0.5, rootMargin: "100px", triggerOnce: true },
 });
@@ -100,7 +99,7 @@ Props details:
 
 1. Copy `src/with-lazy-load-on-intersection.tsx` to your utilities/components folder.
 2. Add `react-intersection-observer` to your project: `pnpm add react-intersection-observer`.
-3. Wrap lazy components with `withLazyLoadOnIntersection({ Component: MyLazy })`.
+3. Wrap lazy components with `withLazyLoadOnIntersection(MyLazy)`.
 4. Tune `options` per component (optional): threshold/rootMargin/triggerOnce.
 
 ## Source / Files of interest
