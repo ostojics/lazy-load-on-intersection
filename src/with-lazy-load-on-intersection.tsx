@@ -4,8 +4,7 @@ import {
   type IntersectionObserverProps,
 } from "react-intersection-observer";
 
-interface WithLazyLoadOnIntersectionProps<P extends object> {
-  Component: React.ComponentType<P>;
+interface WithLazyLoadOnIntersectionConfig {
   fallback?: React.ReactNode;
   options?: Omit<IntersectionObserverProps, "children">;
   wrapperProps?: React.ComponentProps<"div">;
@@ -19,7 +18,7 @@ interface WithLazyLoadOnIntersectionProps<P extends object> {
  * *
  *
  * @template P - The props type of the component being wrapped.
- * * @param {WithLazyLoadOnIntersectionProps<P>} config - Configuration object for the HOC.
+ * * @param {WithLazyLoadOnIntersectionConfig} config - Configuration object for the HOC.
  * @param {React.ComponentType<P>} config.Component - The component to be lazy-loaded (typically a `React.lazy` export).
  * @param {React.ReactNode} [config.fallback=<div>Loading...</div>] - The UI to show while the component is being fetched.
  * @param {IntersectionObserverProps} [config.options] - Intersection Observer settings (e.g., threshold, rootMargin).
@@ -29,22 +28,22 @@ interface WithLazyLoadOnIntersectionProps<P extends object> {
  * // 1. Define the lazy component
  * const HeavyChart = React.lazy(() => import("./HeavyChart"));
  * * // 2. Wrap it
- * const LazyChart = withLazyLoadOnIntersection({
- * Component: HeavyChart
- * });
+ * const LazyChart = withLazyLoadOnIntersection(HeavyChart);
  * * // 3. Use it like a normal component
  * <LazyChart chartData={data} />
  */
-export const withLazyLoadOnIntersection = <P extends object>({
-  Component,
-  fallback = <div>Loading...</div>,
-  options = {
-    threshold: 0.1,
-    rootMargin: "200px",
-    triggerOnce: true,
-  },
-  wrapperProps = {},
-}: WithLazyLoadOnIntersectionProps<P>) => {
+export const withLazyLoadOnIntersection = <P extends object>(
+  Component: React.ComponentType<P>,
+  {
+    fallback = <div>Loading...</div>,
+    options = {
+      threshold: 0.1,
+      rootMargin: "200px",
+      triggerOnce: true,
+    },
+    wrapperProps = {},
+  }: WithLazyLoadOnIntersectionConfig = {},
+) => {
   return (props: P) => {
     const [isIntersecting, setIsIntersecting] = useState(false);
 
