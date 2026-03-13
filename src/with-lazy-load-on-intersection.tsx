@@ -36,14 +36,20 @@ export const withLazyLoadOnIntersection = <P extends object>(
   Component: React.ComponentType<P>,
   {
     fallback = <div>Loading...</div>,
-    options = {
-      threshold: 0.1,
-      rootMargin: "200px",
-      triggerOnce: true,
-    },
+    options,
     wrapperProps = {},
   }: WithLazyLoadOnIntersectionConfig = {},
 ) => {
+  const defaultOptions: Omit<IntersectionObserverProps, "children"> = {
+    threshold: 0.1,
+    rootMargin: "200px",
+    triggerOnce: true,
+  };
+  const mergedOptions: Omit<IntersectionObserverProps, "children"> = {
+    ...defaultOptions,
+    ...(options ?? {}),
+  };
+
   return (props: P) => {
     const [isIntersecting, setIsIntersecting] = useState(false);
 
@@ -51,7 +57,7 @@ export const withLazyLoadOnIntersection = <P extends object>(
       if (inView) {
         setIsIntersecting(true);
       }
-    }, options);
+    }, mergedOptions);
 
     return (
       <div ref={inViewRef} style={{ minHeight: "1px" }} {...wrapperProps}>
